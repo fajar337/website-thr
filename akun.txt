@@ -1,0 +1,11 @@
+1.  profile netflix sebulan
+    gmail: a0983929523@gmail.com
+    password: aa533209
+    profile: thr1
+    pin: 1111
+
+2.  profile netflix sebulan
+    gmail: a09196677602@gmail.com
+    password: nita885264
+    profile: akun2
+    pin: 2222
