@@ -477,4 +477,14 @@ body {
     .envelope-bounce {
         animation: envelopeBounce 3s ease-in-out infinite;
     }
+
+    #modalContent,
+    #cardModalContent {
+        width: min(100%, 22rem);
+    }
+
+    #cardStyleSelector {
+        margin-left: auto;
+        margin-right: auto;
+    }
 }

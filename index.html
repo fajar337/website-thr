@@ -156,7 +156,7 @@
 
         <!-- Modal Content -->
         <div id="modalContent"
-            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl p-6 pr-16 pt-6 md:p-10 md:pr-20 max-w-md w-full mx-auto shadow-2xl shadow-gold/20 modal-enter">
+            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl px-6 pb-6 pt-16 md:px-10 md:pb-10 md:pt-14 max-w-md w-full mx-auto shadow-2xl shadow-gold/20 modal-enter">
 
             <!-- Close Button -->
             <button id="closeModal"
@@ -213,7 +213,7 @@
 
         <!-- Card Modal Content -->
         <div id="cardModalContent"
-            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl p-5 pr-16 pt-6 md:p-8 md:pr-20 max-w-2xl w-full mx-auto shadow-2xl shadow-gold/20 modal-enter max-h-[92vh] overflow-y-auto overflow-x-hidden">
+            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl px-5 pb-5 pt-16 md:px-8 md:pb-8 md:pt-14 max-w-2xl w-full mx-auto shadow-2xl shadow-gold/20 modal-enter max-h-[92vh] overflow-y-auto overflow-x-hidden">
 
             <!-- Close Button -->
             <button id="closeCardModal"
@@ -228,8 +228,8 @@
             </div>
 
             <!-- Card Style Selector -->
-            <div class="mb-4">
-                <label class="text-white/60 text-xs block mb-2">Pilih Gaya Kartu</label>
+            <div class="mb-4 max-w-md mx-auto w-full">
+                <label class="text-white/60 text-xs block mb-2 text-center">Pilih Gaya Kartu</label>
                 <div class="grid grid-cols-3 gap-2" id="cardStyleSelector">
                     <button data-style="green" class="card-style-btn active rounded-xl p-2 border-2 border-gold text-center transition-all">
                         <div class="w-full h-10 rounded-lg bg-gradient-to-br from-green-primary to-green-dark mb-1"></div>
@@ -247,12 +247,12 @@
             </div>
 
             <!-- Canvas Preview -->
-            <div class="flex justify-center mb-4 bg-black/30 rounded-2xl p-3 border border-white/10">
+            <div class="flex justify-center mb-4 bg-black/30 rounded-2xl p-3 border border-white/10 max-w-lg mx-auto">
                 <canvas id="cardCanvas" width="800" height="1000" class="w-full max-w-[430px] rounded-xl shadow-xl"></canvas>
             </div>
 
             <!-- Download & Share Buttons -->
-            <div class="flex gap-3">
+            <div class="flex gap-3 max-w-lg mx-auto w-full">
                 <button id="downloadCardBtn"
                     class="flex-1 bg-gradient-to-r from-gold to-amber text-green-dark font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-gold/30 transition-all text-sm flex items-center justify-center gap-2">
                     Download PNG
