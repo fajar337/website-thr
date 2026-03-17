@@ -492,18 +492,19 @@ function playEnvelopeAnimation() {
 // ===== Modal Functions =====
 async function openModal() {
     if (isAnimating) return;
+    const animationPromise = playEnvelopeAnimation();
+    const rewardPromise = hasRemoteThrSource()
+        ? fetchRemoteThrReward()
+        : ensureThrDataLoaded().then(() => getNextThrReward());
+
     let nextReward = null;
 
-    if (hasRemoteThrSource()) {
-        try {
-            nextReward = await fetchRemoteThrReward();
-        } catch (error) {
-            showToast('Gagal terhubung ke Google Sheets. Coba lagi sebentar.');
-            return;
-        }
-    } else {
-        await ensureThrDataLoaded();
-        nextReward = getNextThrReward();
+    try {
+        nextReward = await rewardPromise;
+    } catch (error) {
+        showToast('Gagal terhubung ke Google Sheets. Coba lagi sebentar.');
+        currentReward = null;
+        return;
     }
 
     currentReward = nextReward;
@@ -522,7 +523,7 @@ async function openModal() {
     counter++;
     thrCounter.textContent = counter;
 
-    await playEnvelopeAnimation();
+    await animationPromise;
 
     thrModal.classList.remove('hidden');
     thrModal.classList.add('flex');
