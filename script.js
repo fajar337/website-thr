@@ -48,6 +48,7 @@ let customThrEntries = [];
 let customThrIndex = 0;
 let customThrLoadPromise = null;
 let currentReward = null;
+let hasOpenedThr = localStorage.getItem('thrOpenedLock') === 'true';
 
 const thrMessages = [
     '"Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri!"',
@@ -74,6 +75,7 @@ const thrMessages = [
 
 const CUSTOM_THR_STORAGE_KEY = 'customThrEntries';
 const CUSTOM_THR_INDEX_STORAGE_KEY = 'customThrIndex';
+const THR_OPEN_LOCK_KEY = 'thrOpenedLock';
 const CUSTOM_THR_EMPTY_MESSAGE = 'Yang dapat THR, maaf THR sudah habis.';
 const CUSTOM_THR_EMPTY_SECONDARY_MESSAGE = '"Coba lagi tahun depan, semoga beruntung."';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiu8Nm7OlWwKxHnTQI6ZnBmY-R2rpiQp6or-yIcGJJeex_HRoUpv8z7VpZB6GC6PTWLg/exec';
@@ -492,6 +494,11 @@ function playEnvelopeAnimation() {
 // ===== Modal Functions =====
 async function openModal() {
     if (isAnimating) return;
+    if (hasOpenedThr) {
+        handleThrLocked();
+        return;
+    }
+
     const animationPromise = playEnvelopeAnimation();
     const rewardPromise = hasRemoteThrSource()
         ? fetchRemoteThrReward()
@@ -508,6 +515,9 @@ async function openModal() {
     }
 
     currentReward = nextReward;
+    if (!nextReward.isEmpty) {
+        markThrAsOpened();
+    }
 
     setThrAmountDisplay(nextReward.amount, nextReward.isCustomText);
     thrMessage.textContent = nextReward.message;
@@ -600,6 +610,39 @@ function showToast(message) {
     setTimeout(() => {
         toast.classList.remove('toast-show');
     }, 3000);
+}
+
+function markThrAsOpened() {
+    hasOpenedThr = true;
+    localStorage.setItem(THR_OPEN_LOCK_KEY, 'true');
+    updateThrButtonState();
+}
+
+function handleThrLocked() {
+    showToast('Hayo mau ngapainnn? 1 orang 1 yaaaa');
+}
+
+function updateThrButtonState() {
+    if (!thrButton) return;
+
+    if (hasOpenedThr) {
+        thrButton.disabled = true;
+        thrButton.classList.add('thr-button-locked');
+        thrButton.setAttribute('aria-disabled', 'true');
+        const label = thrButton.querySelector('span');
+        if (label) {
+            label.textContent = 'THR Sudah Diambil';
+        }
+        return;
+    }
+
+    thrButton.disabled = false;
+    thrButton.classList.remove('thr-button-locked');
+    thrButton.removeAttribute('aria-disabled');
+    const label = thrButton.querySelector('span');
+    if (label) {
+        label.textContent = '🎁 Buka Amplop THR!';
+    }
 }
 
 // ===== Card Canvas Drawing =====
@@ -971,6 +1014,10 @@ async function handleTxtUpload(event) {
 // ===== Event Listeners =====
 thrButton.addEventListener('click', () => {
     if (isAnimating) return;
+    if (hasOpenedThr) {
+        handleThrLocked();
+        return;
+    }
 
     thrButton.style.transform = 'scale(0.95)';
     setTimeout(() => {
@@ -989,6 +1036,7 @@ hiddenTxtInput.addEventListener('change', handleTxtUpload);
 if (!hasRemoteThrSource()) {
     ensureThrDataLoaded();
 }
+updateThrButtonState();
 
 claimBtn.addEventListener('click', () => {
     closeModalFn();
@@ -1053,6 +1101,10 @@ document.addEventListener('keydown', (e) => {
         }
     }
     if (e.key === 'Enter' && thrModal.classList.contains('hidden') && cardModal.classList.contains('hidden') && !isAnimating) {
+        if (hasOpenedThr) {
+            handleThrLocked();
+            return;
+        }
         openModal();
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'u') {

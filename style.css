@@ -466,6 +466,17 @@ body {
     opacity: 1;
 }
 
+#thrButton.thr-button-locked {
+    opacity: 0.7;
+    cursor: not-allowed;
+    filter: grayscale(0.15);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+#thrButton.thr-button-locked:hover::before {
+    opacity: 0;
+}
+
 /* ===== Toast Animation ===== */
 .toast-show {
     transform: translateY(0) translateX(-50%) !important;
