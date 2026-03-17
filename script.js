@@ -48,7 +48,7 @@ let customThrEntries = [];
 let customThrIndex = 0;
 let customThrLoadPromise = null;
 let currentReward = null;
-let hasOpenedThr = localStorage.getItem('thrOpenedLock') === 'true';
+let hasOpenedThr = false;
 
 const thrMessages = [
     '"Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri!"',
@@ -76,6 +76,7 @@ const thrMessages = [
 const CUSTOM_THR_STORAGE_KEY = 'customThrEntries';
 const CUSTOM_THR_INDEX_STORAGE_KEY = 'customThrIndex';
 const THR_OPEN_LOCK_KEY = 'thrOpenedLock';
+const THR_OPEN_LOCK_DURATION_MS = 24 * 60 * 60 * 1000;
 const CUSTOM_THR_EMPTY_MESSAGE = 'Yang dapat THR, maaf THR sudah habis.';
 const CUSTOM_THR_EMPTY_SECONDARY_MESSAGE = '"Coba lagi tahun depan, semoga beruntung."';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiu8Nm7OlWwKxHnTQI6ZnBmY-R2rpiQp6or-yIcGJJeex_HRoUpv8z7VpZB6GC6PTWLg/exec';
@@ -494,6 +495,7 @@ function playEnvelopeAnimation() {
 // ===== Modal Functions =====
 async function openModal() {
     if (isAnimating) return;
+    syncThrOpenLock();
     if (hasOpenedThr) {
         handleThrLocked();
         return;
@@ -612,9 +614,22 @@ function showToast(message) {
     }, 3000);
 }
 
+function syncThrOpenLock() {
+    const savedAt = Number(localStorage.getItem(THR_OPEN_LOCK_KEY) || '0');
+    const isLocked = Number.isFinite(savedAt) && savedAt > 0 && (Date.now() - savedAt) < THR_OPEN_LOCK_DURATION_MS;
+
+    if (!isLocked && savedAt) {
+        localStorage.removeItem(THR_OPEN_LOCK_KEY);
+    }
+
+    hasOpenedThr = isLocked;
+    return isLocked;
+}
+
 function markThrAsOpened() {
+    const openedAt = Date.now();
+    localStorage.setItem(THR_OPEN_LOCK_KEY, String(openedAt));
     hasOpenedThr = true;
-    localStorage.setItem(THR_OPEN_LOCK_KEY, 'true');
     updateThrButtonState();
 }
 
@@ -624,6 +639,7 @@ function handleThrLocked() {
 
 function updateThrButtonState() {
     if (!thrButton) return;
+    syncThrOpenLock();
 
     if (hasOpenedThr) {
         thrButton.disabled = true;
@@ -1014,6 +1030,7 @@ async function handleTxtUpload(event) {
 // ===== Event Listeners =====
 thrButton.addEventListener('click', () => {
     if (isAnimating) return;
+    syncThrOpenLock();
     if (hasOpenedThr) {
         handleThrLocked();
         return;
@@ -1101,6 +1118,7 @@ document.addEventListener('keydown', (e) => {
         }
     }
     if (e.key === 'Enter' && thrModal.classList.contains('hidden') && cardModal.classList.contains('hidden') && !isAnimating) {
+        syncThrOpenLock();
         if (hasOpenedThr) {
             handleThrLocked();
             return;
