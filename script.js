@@ -46,6 +46,7 @@ let isAnimating = false;
 let selectedCardStyle = 'green';
 let customThrEntries = [];
 let customThrIndex = 0;
+let customThrLoadPromise = null;
 
 const thrMessages = [
     '"Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri!"',
@@ -422,6 +423,7 @@ function playEnvelopeAnimation() {
 // ===== Modal Functions =====
 async function openModal() {
     if (isAnimating) return;
+    await ensureThrDataLoaded();
 
     const nextReward = getNextThrReward();
 
@@ -450,6 +452,53 @@ async function openModal() {
     if (!nextReward.isEmpty) {
         launchConfetti();
     }
+}
+
+function applyCustomThrEntries(entries, resetIndex = false) {
+    customThrEntries = entries;
+
+    if (resetIndex || customThrIndex > customThrEntries.length) {
+        customThrIndex = 0;
+    }
+
+    saveCustomThrState();
+}
+
+async function loadDefaultThrEntries() {
+    const response = await fetch('./akun.txt', { cache: 'no-store' });
+
+    if (!response.ok) {
+        throw new Error(`Gagal memuat akun.txt (${response.status})`);
+    }
+
+    const text = await response.text();
+    const entries = parseCustomThrText(text);
+
+    if (entries.length === 0) {
+        throw new Error('akun.txt kosong');
+    }
+
+    return entries;
+}
+
+async function ensureThrDataLoaded() {
+    if (customThrEntries.length > 0) {
+        return true;
+    }
+
+    if (!customThrLoadPromise) {
+        customThrLoadPromise = loadDefaultThrEntries()
+            .then((entries) => {
+                applyCustomThrEntries(entries, false);
+                return true;
+            })
+            .catch(() => false)
+            .finally(() => {
+                customThrLoadPromise = null;
+            });
+    }
+
+    return customThrLoadPromise;
 }
 
 function closeModalFn() {
@@ -828,9 +877,7 @@ async function handleTxtUpload(event) {
             return;
         }
 
-        customThrEntries = entries;
-        customThrIndex = 0;
-        saveCustomThrState();
+        applyCustomThrEntries(entries, true);
         showToast(`Daftar THR berhasil dimuat: ${entries.length} kalimat.`);
     } catch (error) {
         showToast('Gagal membaca file txt.');
@@ -857,6 +904,7 @@ hiddenUploadTrigger.addEventListener('click', () => {
     hiddenTxtInput.click();
 });
 hiddenTxtInput.addEventListener('change', handleTxtUpload);
+ensureThrDataLoaded();
 
 claimBtn.addEventListener('click', () => {
     closeModalFn();
