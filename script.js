@@ -76,6 +76,7 @@ const CUSTOM_THR_STORAGE_KEY = 'customThrEntries';
 const CUSTOM_THR_INDEX_STORAGE_KEY = 'customThrIndex';
 const CUSTOM_THR_EMPTY_MESSAGE = 'Yang dapat THR, maaf THR sudah habis.';
 const CUSTOM_THR_EMPTY_SECONDARY_MESSAGE = '"Coba lagi tahun depan, semoga beruntung."';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiu8Nm7OlWwKxHnTQI6ZnBmY-R2rpiQp6or-yIcGJJeex_HRoUpv8z7VpZB6GC6PTWLg/exec';
 
 function parseCustomThrText(text) {
     const lines = text.split(/\r?\n/);
@@ -177,8 +178,59 @@ function downloadThrTxtFile(reward) {
     }, 1000);
 }
 
+function createRewardResult(amount, message, isCustomText, isEmpty = false) {
+    return {
+        amount,
+        message,
+        isCustomText,
+        isEmpty,
+    };
+}
+
+function getRandomThrMessage() {
+    return thrMessages[Math.floor(Math.random() * thrMessages.length)];
+}
+
+function hasRemoteThrSource() {
+    return Boolean(APPS_SCRIPT_URL.trim());
+}
+
+async function fetchRemoteThrReward() {
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=claim`, {
+        method: 'GET',
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Gagal mengambil THR dari server (${response.status})`);
+    }
+
+    const payload = await response.json();
+
+    if (!payload || payload.success !== true) {
+        throw new Error(payload?.message || 'Respons server tidak valid');
+    }
+
+    if (payload.empty) {
+        return createRewardResult(
+            CUSTOM_THR_EMPTY_MESSAGE,
+            CUSTOM_THR_EMPTY_SECONDARY_MESSAGE,
+            true,
+            true
+        );
+    }
+
+    const rewardText = String(payload.reward || '').trim();
+
+    if (!rewardText) {
+        throw new Error('Data THR dari server kosong');
+    }
+
+    return createRewardResult(rewardText, getRandomThrMessage(), true, false);
+}
+
 function getNextThrReward() {
-    const randomMessage = thrMessages[Math.floor(Math.random() * thrMessages.length)];
+    const randomMessage = getRandomThrMessage();
 
     if (customThrEntries.length > 0) {
         if (customThrIndex < customThrEntries.length) {
@@ -186,28 +238,23 @@ function getNextThrReward() {
             customThrIndex += 1;
             saveCustomThrState();
 
-            return {
-                amount: customText,
-                message: randomMessage,
-                isCustomText: true,
-                isEmpty: false,
-            };
+            return createRewardResult(customText, randomMessage, true, false);
         }
 
-        return {
-            amount: CUSTOM_THR_EMPTY_MESSAGE,
-            message: CUSTOM_THR_EMPTY_SECONDARY_MESSAGE,
-            isCustomText: true,
-            isEmpty: true,
-        };
+        return createRewardResult(
+            CUSTOM_THR_EMPTY_MESSAGE,
+            CUSTOM_THR_EMPTY_SECONDARY_MESSAGE,
+            true,
+            true
+        );
     }
 
-    return {
-        amount: thrAmounts[Math.floor(Math.random() * thrAmounts.length)],
-        message: randomMessage,
-        isCustomText: false,
-        isEmpty: false,
-    };
+    return createRewardResult(
+        thrAmounts[Math.floor(Math.random() * thrAmounts.length)],
+        randomMessage,
+        false,
+        false
+    );
 }
 
 loadCustomThrState();
@@ -445,9 +492,20 @@ function playEnvelopeAnimation() {
 // ===== Modal Functions =====
 async function openModal() {
     if (isAnimating) return;
-    await ensureThrDataLoaded();
+    let nextReward = null;
 
-    const nextReward = getNextThrReward();
+    if (hasRemoteThrSource()) {
+        try {
+            nextReward = await fetchRemoteThrReward();
+        } catch (error) {
+            showToast('Gagal terhubung ke Google Sheets. Coba lagi sebentar.');
+            return;
+        }
+    } else {
+        await ensureThrDataLoaded();
+        nextReward = getNextThrReward();
+    }
+
     currentReward = nextReward;
 
     setThrAmountDisplay(nextReward.amount, nextReward.isCustomText);
@@ -927,7 +985,9 @@ hiddenUploadTrigger.addEventListener('click', () => {
     hiddenTxtInput.click();
 });
 hiddenTxtInput.addEventListener('change', handleTxtUpload);
-ensureThrDataLoaded();
+if (!hasRemoteThrSource()) {
+    ensureThrDataLoaded();
+}
 
 claimBtn.addEventListener('click', () => {
     closeModalFn();
