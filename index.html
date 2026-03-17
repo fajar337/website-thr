@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzvvfxLkyGwXnIPzxMM7FtR9HomlOBXzdTWg&s" type="image/x-icon">
+    <title>THR Lebaran</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        'green-dark': '#0D1B0E',
+                        'green-card': '#1A3A1C',
+                        'green-primary': '#1B5E20',
+                        'gold': '#FFD700',
+                        'gold-dark': '#B8860B',
+                        'amber': '#F57F17',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="font-poppins bg-green-dark min-h-screen overflow-x-hidden relative">
+
+    <!-- Background Decorations -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <img src="https://mgx-backend-cdn.metadl.com/generate/images/715494/2026-03-16/2b90bed1-e7e0-4576-ba10-fab04ac9fa67.png"
+            alt="Mosque" class="absolute bottom-0 left-0 w-full opacity-20 object-cover">
+        <img src="https://mgx-backend-cdn.metadl.com/generate/images/715494/2026-03-16/6f33384b-4659-4878-b3a7-9e078701aad4.png"
+            alt="Ketupat" class="ketupat-float absolute top-10 left-10 w-24 md:w-32 opacity-30">
+        <img src="https://mgx-backend-cdn.metadl.com/generate/images/715494/2026-03-16/6f33384b-4659-4878-b3a7-9e078701aad4.png"
+            alt="Ketupat" class="ketupat-float-delay absolute top-20 right-10 w-20 md:w-28 opacity-25">
+        <div class="absolute inset-0 bg-gradient-to-b from-green-dark/80 via-transparent to-green-dark"></div>
+    </div>
+
+    <!-- Sparkle Canvas for Confetti -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Main Content -->
+    <div class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+
+        <!-- Header -->
+        <div class="text-center mb-6 animate-fadeInDown">
+            <div class="inline-flex items-center gap-2 bg-green-card/60 backdrop-blur-sm border border-gold/20 rounded-full px-6 py-2 mb-4">
+                <span class="text-gold text-sm md:text-base">🌙 Ramadan & Lebaran 2026</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gold via-amber to-gold mb-3 leading-tight">
+                Dapetin THR
+            </h1>
+            <h2 class="text-xl md:text-2xl lg:text-3xl font-bold text-white/90 mb-2">
+                Dari Gua Fajar Ganteng😙
+            </h2>
+            <p class="text-white/60 text-sm md:text-base max-w-md mx-auto">
+                Klik tombol di bawah buat buka amplop THR! Selamat Hari Raya Idul Fitri 1447 H
+            </p>
+        </div>
+
+        <!-- THR Envelope Image -->
+        <div id="envelopeContainer" class="relative mb-8 animate-fadeInUp">
+            <div class="envelope-glow absolute inset-0 rounded-full"></div>
+            <img id="envelopeImg" src="https://mgx-backend-cdn.metadl.com/generate/images/715494/2026-03-16/a26bc608-29ae-4f0d-b408-017c3b0d8d79.png"
+                alt="Amplop THR"
+                class="w-48 h-48 md:w-64 md:h-64 object-contain relative z-10 envelope-bounce drop-shadow-2xl">
+        </div>
+
+        <!-- CTA Button -->
+        <button id="thrButton"
+            class="group relative px-10 py-5 md:px-14 md:py-6 bg-gradient-to-r from-gold via-amber to-gold-dark text-green-dark font-extrabold text-xl md:text-2xl rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 transform hover:scale-105 active:scale-95 transition-all duration-300 pulse-glow overflow-hidden">
+            <span class="relative z-10 flex items-center gap-3">
+                🎁 Buka Amplop THR!
+            </span>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+        </button>
+
+        <!-- Counter -->
+        <div class="mt-6 text-center animate-fadeInUp">
+            <p class="text-white/40 text-xs md:text-sm">
+                Total THR dibuka: <span id="thrCounter" class="text-gold font-bold">0</span> kali
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-12 text-center">
+            <p class="text-white/30 text-xs">
+                ✨ Selamat Hari Raya Idul Fitri ✨<br>
+                Mohon Maaf Lahir dan Batin
+            </p>
+        </div>
+    </div>
+
+    <!-- ENVELOPE OPENING OVERLAY -->
+    <div id="envelopeOverlay" class="fixed inset-0 z-30 hidden items-center justify-center">
+        <!-- Dark backdrop -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md envelope-overlay-bg"></div>
+
+        <!-- Envelope Animation Container -->
+        <div class="relative z-10 flex flex-col items-center justify-center">
+            <!-- Light rays behind envelope -->
+            <div id="lightRays" class="absolute w-[500px] h-[500px] opacity-0 light-rays-container">
+                <div class="light-ray light-ray-1"></div>
+                <div class="light-ray light-ray-2"></div>
+                <div class="light-ray light-ray-3"></div>
+                <div class="light-ray light-ray-4"></div>
+                <div class="light-ray light-ray-5"></div>
+                <div class="light-ray light-ray-6"></div>
+                <div class="light-ray light-ray-7"></div>
+                <div class="light-ray light-ray-8"></div>
+            </div>
+
+            <!-- Sparkle particles around envelope -->
+            <div id="sparkleContainer" class="absolute w-[400px] h-[400px]"></div>
+
+            <!-- 3D Envelope Flip Card -->
+            <div id="envelopeFlipCard" class="envelope-flip-card">
+                <div id="envelopeFlipInner" class="envelope-flip-inner">
+                    <!-- Front: Closed envelope -->
+                    <div class="envelope-flip-front">
+                        <img src="https://mgx-backend-cdn.metadl.com/generate/images/715494/2026-03-16/a26bc608-29ae-4f0d-b408-017c3b0d8d79.png"
+                            alt="Amplop THR Tertutup"
+                            class="w-56 h-56 md:w-72 md:h-72 object-contain drop-shadow-2xl">
+                    </div>
+                    <!-- Back: Opened envelope with money peek -->
+                    <div class="envelope-flip-back">
+                        <div class="relative w-56 h-56 md:w-72 md:h-72 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full bg-gradient-radial from-gold/40 via-amber/20 to-transparent animate-pulse"></div>
+                            <div class="text-center relative z-10">
+                                <div class="text-7xl md:text-8xl mb-2 drop-shadow-lg">💰</div>
+                                <div class="text-gold font-black text-xl md:text-2xl drop-shadow-lg animate-pulse">THR!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opening text -->
+            <p id="openingText" class="text-gold/80 text-lg md:text-xl font-bold mt-8 opacity-0 tracking-wider">
+                Membuka amplop...
+            </p>
+        </div>
+    </div>
+
+    <!-- POPUP MODAL -->
+    <div id="thrModal" class="fixed inset-0 z-40 hidden items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div id="modalBackdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+        <!-- Modal Content -->
+        <div id="modalContent"
+            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl p-6 pr-16 pt-6 md:p-10 md:pr-20 max-w-md w-full mx-auto shadow-2xl shadow-gold/20 modal-enter">
+
+            <!-- Close Button -->
+            <button id="closeModal"
+                class="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all z-30 pointer-events-auto">
+                ✕
+            </button>
+
+            <!-- Modal Header -->
+            <div class="text-center mb-6">
+                <div class="text-5xl md:text-6xl mb-3 animate-bounce">🎊</div>
+                <h3 id="modalTitle" class="text-2xl md:text-3xl font-black text-gold mb-1">Selamat!</h3>
+                <p id="modalSubtitle" class="text-white/60 text-sm">Kamu mendapatkan THR Lebaran!</p>
+            </div>
+
+            <!-- THR Amount -->
+            <div class="bg-green-primary/40 border border-gold/30 rounded-2xl p-6 mb-6 text-center">
+                <p class="text-white/50 text-xs uppercase tracking-widest mb-2">THR-mu</p>
+                <p id="thrAmount" class="text-4xl md:text-5xl font-black text-gold thr-amount-pop">
+                    Rp 500.000
+                </p>
+            </div>
+
+            <!-- Message -->
+            <div class="bg-white/5 rounded-xl p-4 mb-6 border border-white/10">
+                <p id="thrMessage" class="text-white/80 text-sm md:text-base text-center leading-relaxed italic">
+                    "Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri! 🌙"
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mb-3">
+                <button id="shareBtn"
+                    class="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all text-sm">
+                    Bagikan
+                </button>
+                <button id="claimBtn"
+                    class="flex-1 bg-gradient-to-r from-gold to-amber text-green-dark font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-gold/30 transition-all text-sm">
+                    Terima THR
+                </button>
+            </div>
+
+            <!-- Generate Card Button -->
+            <button id="generateCardBtn"
+                class="w-full bg-gradient-to-r from-green-primary to-green-card border border-gold/30 hover:border-gold/60 text-gold font-bold py-3 rounded-xl transition-all text-sm hover:shadow-lg hover:shadow-green-primary/30 flex items-center justify-center gap-2">
+                Buat Kartu Ucapan THR
+            </button>
+        </div>
+    </div>
+
+    <!-- CARD PREVIEW MODAL -->
+    <div id="cardModal" class="fixed inset-0 z-[60] hidden items-start sm:items-center justify-center p-3 sm:p-4">
+        <!-- Backdrop -->
+        <div id="cardModalBackdrop" class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
+
+        <!-- Card Modal Content -->
+        <div id="cardModalContent"
+            class="relative bg-gradient-to-b from-green-card to-green-dark border-2 border-gold/40 rounded-3xl p-5 pr-16 pt-6 md:p-8 md:pr-20 max-w-2xl w-full mx-auto shadow-2xl shadow-gold/20 modal-enter max-h-[92vh] overflow-y-auto overflow-x-hidden">
+
+            <!-- Close Button -->
+            <button id="closeCardModal"
+                class="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all z-30 pointer-events-auto">
+                ✕
+            </button>
+
+            <!-- Card Modal Header -->
+            <div class="text-center mb-4">
+                <h3 class="text-xl md:text-2xl font-black text-gold mb-1">🎨 Kartu Ucapan THR</h3>
+                <p class="text-white/50 text-xs">Simpan atau bagikan kartu ucapanmu!</p>
+            </div>
+
+            <!-- Card Style Selector -->
+            <div class="mb-4">
+                <label class="text-white/60 text-xs block mb-2">Pilih Gaya Kartu</label>
+                <div class="grid grid-cols-3 gap-2" id="cardStyleSelector">
+                    <button data-style="green" class="card-style-btn active rounded-xl p-2 border-2 border-gold text-center transition-all">
+                        <div class="w-full h-10 rounded-lg bg-gradient-to-br from-green-primary to-green-dark mb-1"></div>
+                        <span class="text-white/70 text-[10px]">Hijau</span>
+                    </button>
+                    <button data-style="gold" class="card-style-btn rounded-xl p-2 border-2 border-white/20 hover:border-gold/50 text-center transition-all">
+                        <div class="w-full h-10 rounded-lg bg-gradient-to-br from-amber to-gold-dark mb-1"></div>
+                        <span class="text-white/70 text-[10px]">Emas</span>
+                    </button>
+                    <button data-style="purple" class="card-style-btn rounded-xl p-2 border-2 border-white/20 hover:border-gold/50 text-center transition-all">
+                        <div class="w-full h-10 rounded-lg bg-gradient-to-br from-purple-700 to-indigo-900 mb-1"></div>
+                        <span class="text-white/70 text-[10px]">Ungu</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Preview -->
+            <div class="flex justify-center mb-4 bg-black/30 rounded-2xl p-3 border border-white/10">
+                <canvas id="cardCanvas" width="800" height="1000" class="w-full max-w-[430px] rounded-xl shadow-xl"></canvas>
+            </div>
+
+            <!-- Download & Share Buttons -->
+            <div class="flex gap-3">
+                <button id="downloadCardBtn"
+                    class="flex-1 bg-gradient-to-r from-gold to-amber text-green-dark font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-gold/30 transition-all text-sm flex items-center justify-center gap-2">
+                    Download PNG
+                </button>
+                <button id="shareCardBtn"
+                    class="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
+                    Bagikan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-green-primary border border-gold/30 text-white px-6 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none">
+        <p id="toastText" class="text-sm font-semibold flex items-center gap-2">
+            THR berhasil diterima!
+        </p>
+    </div>
+
+    <button id="hiddenUploadTrigger" type="button"
+        class="fixed bottom-2 right-2 z-[80] h-10 w-10 opacity-0 pointer-events-auto"
+        aria-label="Upload daftar THR"></button>
+    <input id="hiddenTxtInput" type="file" accept=".txt,text/plain" class="hidden">
+
+    <script src="./script.js"></script>
+</body>
+
+</html>
