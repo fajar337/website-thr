@@ -47,6 +47,7 @@ let selectedCardStyle = 'green';
 let customThrEntries = [];
 let customThrIndex = 0;
 let customThrLoadPromise = null;
+let currentReward = null;
 
 const thrMessages = [
     '"Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri!"',
@@ -153,6 +154,27 @@ function setThrAmountDisplay(value, isCustomText = false) {
     }
 
     thrAmount.classList.add('whitespace-pre-line', 'break-words');
+}
+
+function downloadThrTxtFile(reward) {
+    if (!reward || reward.isEmpty) {
+        return;
+    }
+
+    const blob = new Blob([reward.amount], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    link.href = url;
+    link.download = `thr-${timestamp}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 1000);
 }
 
 function getNextThrReward() {
@@ -426,6 +448,7 @@ async function openModal() {
     await ensureThrDataLoaded();
 
     const nextReward = getNextThrReward();
+    currentReward = nextReward;
 
     setThrAmountDisplay(nextReward.amount, nextReward.isCustomText);
     thrMessage.textContent = nextReward.message;
@@ -908,8 +931,14 @@ ensureThrDataLoaded();
 
 claimBtn.addEventListener('click', () => {
     closeModalFn();
-    showToast('✅ THR berhasil diterima! Alhamdulillah 🤲');
-    launchConfetti();
+
+    if (currentReward && !currentReward.isEmpty) {
+        downloadThrTxtFile(currentReward);
+        showToast('THR berhasil diterima! File txt sedang di-download.');
+        launchConfetti();
+    } else {
+        showToast('THR sudah habis.');
+    }
 });
 
 shareBtn.addEventListener('click', () => {
