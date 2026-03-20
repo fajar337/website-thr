@@ -9,6 +9,7 @@ const shareBtn = document.getElementById('shareBtn');
 const thrAmount = document.getElementById('thrAmount');
 const thrMessage = document.getElementById('thrMessage');
 const thrCounter = document.getElementById('thrCounter');
+const thrRemaining = document.getElementById('thrRemaining');
 const modalTitle = document.getElementById('modalTitle');
 const modalSubtitle = document.getElementById('modalSubtitle');
 const toast = document.getElementById('toast');
@@ -49,6 +50,9 @@ let customThrIndex = 0;
 let customThrLoadPromise = null;
 let currentReward = null;
 let hasOpenedThr = false;
+let openingStatusText = 'Membuka amplop...';
+let hiddenAdminPressTimer = null;
+let hiddenAdminResetTriggered = false;
 
 const thrMessages = [
     '"Taqabbalallahu minna wa minkum. Semoga THR ini membawa berkah untuk kamu dan keluarga. Selamat Hari Raya Idul Fitri!"',
@@ -194,8 +198,80 @@ function getRandomThrMessage() {
     return thrMessages[Math.floor(Math.random() * thrMessages.length)];
 }
 
+function getLocalRemainingCount() {
+    return Math.max(customThrEntries.length - customThrIndex, 0);
+}
+
 function hasRemoteThrSource() {
     return Boolean(APPS_SCRIPT_URL.trim());
+}
+
+async function fetchRemoteThrStats() {
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=stats`, {
+        method: 'GET',
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Gagal mengambil stats THR (${response.status})`);
+    }
+
+    const payload = await response.json();
+
+    if (!payload || payload.success !== true) {
+        throw new Error(payload?.message || 'Stats THR tidak valid');
+    }
+
+    return Number(payload.remaining || 0);
+}
+
+async function updateRemainingDisplay() {
+    if (!thrRemaining) return;
+
+    if (hasRemoteThrSource()) {
+        try {
+            const remaining = await fetchRemoteThrStats();
+            thrRemaining.textContent = String(remaining);
+        } catch (error) {
+            thrRemaining.textContent = 'Tidak tersedia';
+        }
+        return;
+    }
+
+    thrRemaining.textContent = String(getLocalRemainingCount());
+}
+
+function playEnvelopeSound() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const now = audioContext.currentTime;
+    const notes = [
+        { time: 0, frequency: 523.25, duration: 0.08 },
+        { time: 0.12, frequency: 659.25, duration: 0.08 },
+        { time: 0.28, frequency: 783.99, duration: 0.12 },
+    ];
+
+    notes.forEach((note) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(note.frequency, now + note.time);
+        gain.gain.setValueAtTime(0.0001, now + note.time);
+        gain.gain.exponentialRampToValueAtTime(0.08, now + note.time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + note.time + note.duration);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(now + note.time);
+        oscillator.stop(now + note.time + note.duration + 0.02);
+    });
+
+    setTimeout(() => {
+        audioContext.close().catch(() => {});
+    }, 1200);
 }
 
 async function fetchRemoteThrReward() {
@@ -302,6 +378,32 @@ const cardThemes = {
         ornamentColor: 'rgba(255,215,0,0.12)',
         ornamentColor2: 'rgba(225,190,231,0.08)',
         borderColor: 'rgba(255,215,0,0.3)',
+    },
+    ocean: {
+        bgGradient1: '#082032',
+        bgGradient2: '#0F4C75',
+        bgGradient3: '#0B1F33',
+        accentColor: '#7FDBFF',
+        accentColor2: '#B8F2FF',
+        textPrimary: '#E8FBFF',
+        textSecondary: '#B8F2FF',
+        textMuted: 'rgba(184,242,255,0.7)',
+        ornamentColor: 'rgba(127,219,255,0.15)',
+        ornamentColor2: 'rgba(184,242,255,0.08)',
+        borderColor: 'rgba(127,219,255,0.35)',
+    },
+    rose: {
+        bgGradient1: '#4A0E2F',
+        bgGradient2: '#8C1D5B',
+        bgGradient3: '#2A081B',
+        accentColor: '#FFD1DC',
+        accentColor2: '#FFE4EB',
+        textPrimary: '#FFF1F5',
+        textSecondary: '#FFD1DC',
+        textMuted: 'rgba(255,209,220,0.7)',
+        ornamentColor: 'rgba(255,209,220,0.15)',
+        ornamentColor2: 'rgba(255,228,235,0.08)',
+        borderColor: 'rgba(255,209,220,0.35)',
     },
 };
 
@@ -436,6 +538,7 @@ function createSparkles() {
 function playEnvelopeAnimation() {
     return new Promise((resolve) => {
         isAnimating = true;
+        playEnvelopeSound();
 
         envelopeOverlay.classList.remove('hidden');
         envelopeOverlay.classList.add('flex');
@@ -453,7 +556,7 @@ function playEnvelopeAnimation() {
         setTimeout(() => {
             envelopeFlipCard.classList.add('envelope-shaking');
             openingText.classList.add('text-fade-in');
-            openingText.textContent = 'Membuka amplop...';
+            openingText.textContent = openingStatusText;
             setTimeout(() => {
                 openingText.classList.add('text-pulse');
             }, 400);
@@ -501,6 +604,7 @@ async function openModal() {
         return;
     }
 
+    openingStatusText = hasRemoteThrSource() ? 'Mengambil THR kamu...' : 'Membuka amplop...';
     const animationPromise = playEnvelopeAnimation();
     const rewardPromise = hasRemoteThrSource()
         ? fetchRemoteThrReward()
@@ -520,6 +624,10 @@ async function openModal() {
     if (!nextReward.isEmpty) {
         markThrAsOpened();
     }
+    openingStatusText = 'Membuka amplop...';
+    if (!envelopeOverlay.classList.contains('hidden')) {
+        openingText.textContent = openingStatusText;
+    }
 
     setThrAmountDisplay(nextReward.amount, nextReward.isCustomText);
     thrMessage.textContent = nextReward.message;
@@ -534,6 +642,7 @@ async function openModal() {
 
     counter++;
     thrCounter.textContent = counter;
+    updateRemainingDisplay();
 
     await animationPromise;
 
@@ -556,6 +665,7 @@ function applyCustomThrEntries(entries, resetIndex = false) {
     }
 
     saveCustomThrState();
+    updateRemainingDisplay();
 }
 
 async function loadDefaultThrEntries() {
@@ -631,6 +741,26 @@ function markThrAsOpened() {
     localStorage.setItem(THR_OPEN_LOCK_KEY, String(openedAt));
     hasOpenedThr = true;
     updateThrButtonState();
+}
+
+function resetThrOpenLock() {
+    localStorage.removeItem(THR_OPEN_LOCK_KEY);
+    hasOpenedThr = false;
+    updateThrButtonState();
+    showToast('Mode admin: lock THR berhasil di-reset.');
+}
+
+function startHiddenAdminPress() {
+    clearTimeout(hiddenAdminPressTimer);
+    hiddenAdminResetTriggered = false;
+    hiddenAdminPressTimer = setTimeout(() => {
+        hiddenAdminResetTriggered = true;
+        resetThrOpenLock();
+    }, 900);
+}
+
+function stopHiddenAdminPress() {
+    clearTimeout(hiddenAdminPressTimer);
 }
 
 function handleThrLocked() {
@@ -1047,13 +1177,28 @@ thrButton.addEventListener('click', () => {
 closeModal.addEventListener('click', closeModalFn);
 modalBackdrop.addEventListener('click', closeModalFn);
 hiddenUploadTrigger.addEventListener('click', () => {
+    if (hiddenAdminResetTriggered) {
+        hiddenAdminResetTriggered = false;
+        return;
+    }
     hiddenTxtInput.click();
 });
+hiddenUploadTrigger.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    resetThrOpenLock();
+});
+hiddenUploadTrigger.addEventListener('mousedown', startHiddenAdminPress);
+hiddenUploadTrigger.addEventListener('touchstart', startHiddenAdminPress, { passive: true });
+hiddenUploadTrigger.addEventListener('mouseup', stopHiddenAdminPress);
+hiddenUploadTrigger.addEventListener('mouseleave', stopHiddenAdminPress);
+hiddenUploadTrigger.addEventListener('touchend', stopHiddenAdminPress);
+hiddenUploadTrigger.addEventListener('touchcancel', stopHiddenAdminPress);
 hiddenTxtInput.addEventListener('change', handleTxtUpload);
 if (!hasRemoteThrSource()) {
     ensureThrDataLoaded();
 }
 updateThrButtonState();
+updateRemainingDisplay();
 
 claimBtn.addEventListener('click', () => {
     closeModalFn();
@@ -1124,6 +1269,10 @@ document.addEventListener('keydown', (e) => {
             return;
         }
         openModal();
+    }
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        resetThrOpenLock();
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'u') {
         e.preventDefault();

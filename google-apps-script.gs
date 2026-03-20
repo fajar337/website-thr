@@ -12,6 +12,10 @@ function doGet(e) {
       return jsonResponse({ success: true, message: 'ok' });
     }
 
+    if (action === 'stats') {
+      return jsonResponse(getStats_());
+    }
+
     return jsonResponse({ success: false, message: 'Action tidak dikenal' });
   } catch (error) {
     return jsonResponse({
@@ -68,6 +72,39 @@ function claimThr_() {
     success: true,
     empty: true,
     message: 'THR sudah habis',
+  };
+}
+
+function getStats_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    throw new Error(`Sheet "${SHEET_NAME}" tidak ditemukan`);
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return {
+      success: true,
+      remaining: 0,
+    };
+  }
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  let remaining = 0;
+
+  for (let i = 0; i < values.length; i += 1) {
+    const reward = String(values[i][0] || '').trim();
+    const status = String(values[i][1] || '').trim().toUpperCase();
+
+    if (reward && (!status || status === 'READY')) {
+      remaining += 1;
+    }
+  }
+
+  return {
+    success: true,
+    remaining: remaining,
   };
 }
 

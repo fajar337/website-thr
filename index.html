@@ -87,6 +87,9 @@
             <p class="text-white/40 text-xs md:text-sm">
                 Total THR dibuka: <span id="thrCounter" class="text-gold font-bold">0</span> kali
             </p>
+            <p class="text-white/50 text-xs md:text-sm mt-2">
+                Sisa THR: <span id="thrRemaining" class="text-gold font-bold">Memuat...</span>
+            </p>
         </div>
 
         <!-- Footer -->
@@ -230,8 +233,8 @@
             <!-- Card Style Selector -->
             <div class="mb-4 max-w-md mx-auto w-full">
                 <label class="text-white/60 text-xs block mb-2 text-center">Pilih Gaya Kartu</label>
-                <div class="grid grid-cols-3 gap-2" id="cardStyleSelector">
-                    <button data-style="green" class="card-style-btn active rounded-xl p-2 border-2 border-gold text-center transition-all">
+                <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="cardStyleSelector">
+                    <button data-style="green" class="card-style-btn active rounded-xl p-2 border-2 border-white/20 text-center transition-all">
                         <div class="w-full h-10 rounded-lg bg-gradient-to-br from-green-primary to-green-dark mb-1"></div>
                         <span class="text-white/70 text-[10px]">Hijau</span>
                     </button>
@@ -242,6 +245,14 @@
                     <button data-style="purple" class="card-style-btn rounded-xl p-2 border-2 border-white/20 hover:border-gold/50 text-center transition-all">
                         <div class="w-full h-10 rounded-lg bg-gradient-to-br from-purple-700 to-indigo-900 mb-1"></div>
                         <span class="text-white/70 text-[10px]">Ungu</span>
+                    </button>
+                    <button data-style="ocean" class="card-style-btn rounded-xl p-2 border-2 border-white/20 hover:border-gold/50 text-center transition-all">
+                        <div class="w-full h-10 rounded-lg bg-gradient-to-br from-sky-500 to-cyan-900 mb-1"></div>
+                        <span class="text-white/70 text-[10px]">Laut</span>
+                    </button>
+                    <button data-style="rose" class="card-style-btn rounded-xl p-2 border-2 border-white/20 hover:border-gold/50 text-center transition-all">
+                        <div class="w-full h-10 rounded-lg bg-gradient-to-br from-rose-500 to-pink-900 mb-1"></div>
+                        <span class="text-white/70 text-[10px]">Rose</span>
                     </button>
                 </div>
             </div>
