@@ -33,6 +33,12 @@ const cardModal = document.getElementById('cardModal');
 const cardModalBackdrop = document.getElementById('cardModalBackdrop');
 const cardModalContent = document.getElementById('cardModalContent');
 const closeCardModal = document.getElementById('closeCardModal');
+const adminHistoryModal = document.getElementById('adminHistoryModal');
+const adminHistoryBackdrop = document.getElementById('adminHistoryBackdrop');
+const adminHistoryContent = document.getElementById('adminHistoryContent');
+const closeAdminHistoryModal = document.getElementById('closeAdminHistoryModal');
+const adminHistoryStatus = document.getElementById('adminHistoryStatus');
+const adminHistoryList = document.getElementById('adminHistoryList');
 const cardCanvas = document.getElementById('cardCanvas');
 const cardCtx = cardCanvas.getContext('2d');
 const downloadCardBtn = document.getElementById('downloadCardBtn');
@@ -206,6 +212,19 @@ function hasRemoteThrSource() {
     return Boolean(APPS_SCRIPT_URL.trim());
 }
 
+function getBrowserSourceLabel() {
+    const ua = navigator.userAgent;
+    let browser = 'Browser Tidak Dikenal';
+
+    if (ua.includes('Edg/')) browser = 'Microsoft Edge';
+    else if (ua.includes('Chrome/')) browser = 'Google Chrome';
+    else if (ua.includes('Firefox/')) browser = 'Mozilla Firefox';
+    else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browser = 'Safari';
+
+    const platform = navigator.userAgentData?.platform || navigator.platform || 'Unknown OS';
+    return `${browser} - ${platform}`;
+}
+
 async function fetchRemoteThrStats() {
     const response = await fetch(`${APPS_SCRIPT_URL}?action=stats`, {
         method: 'GET',
@@ -223,6 +242,25 @@ async function fetchRemoteThrStats() {
     }
 
     return Number(payload.remaining || 0);
+}
+
+async function fetchRemoteClaimHistory() {
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=history`, {
+        method: 'GET',
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Gagal mengambil riwayat claim (${response.status})`);
+    }
+
+    const payload = await response.json();
+
+    if (!payload || payload.success !== true) {
+        throw new Error(payload?.message || 'Riwayat claim tidak valid');
+    }
+
+    return Array.isArray(payload.history) ? payload.history : [];
 }
 
 async function updateRemainingDisplay() {
@@ -275,7 +313,8 @@ function playEnvelopeSound() {
 }
 
 async function fetchRemoteThrReward() {
-    const response = await fetch(`${APPS_SCRIPT_URL}?action=claim`, {
+    const source = encodeURIComponent(getBrowserSourceLabel());
+    const response = await fetch(`${APPS_SCRIPT_URL}?action=claim&source=${source}`, {
         method: 'GET',
         cache: 'no-store',
     });
@@ -791,6 +830,76 @@ function updateThrButtonState() {
     }
 }
 
+function formatHistoryDate(value) {
+    if (!value) return 'Waktu tidak tersedia';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleString('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    });
+}
+
+function createHistoryItem(entry) {
+    const rewardPreview = String(entry.reward || '')
+        .split('\n')
+        .slice(0, 2)
+        .join(' | ');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'bg-white/5 border border-white/10 rounded-2xl p-4';
+    wrapper.innerHTML = `
+        <p class="text-gold font-bold text-sm mb-1">${rewardPreview || 'THR tanpa nama'}</p>
+        <p class="text-white/70 text-xs mb-1">Diambil: ${formatHistoryDate(entry.claimed_at)}</p>
+        <p class="text-white/50 text-xs">Browser: ${entry.source || 'Tidak diketahui'}</p>
+    `;
+    return wrapper;
+}
+
+async function openAdminHistoryModal() {
+    if (!hasRemoteThrSource()) {
+        showToast('Riwayat claim admin hanya tersedia saat memakai Google Sheets.');
+        return;
+    }
+
+    adminHistoryList.innerHTML = '';
+    adminHistoryStatus.textContent = 'Memuat riwayat claim...';
+    adminHistoryModal.classList.remove('hidden');
+    adminHistoryModal.classList.add('flex');
+    adminHistoryContent.classList.remove('modal-exit');
+    adminHistoryContent.classList.add('modal-enter');
+
+    try {
+        const history = await fetchRemoteClaimHistory();
+
+        if (history.length === 0) {
+            adminHistoryStatus.textContent = 'Belum ada THR yang diambil.';
+            return;
+        }
+
+        adminHistoryStatus.textContent = `Menampilkan ${history.length} riwayat claim terbaru.`;
+        history.forEach((entry) => {
+            adminHistoryList.appendChild(createHistoryItem(entry));
+        });
+    } catch (error) {
+        adminHistoryStatus.textContent = 'Gagal memuat riwayat claim admin.';
+    }
+}
+
+function closeAdminHistoryModalFn() {
+    adminHistoryContent.classList.remove('modal-enter');
+    adminHistoryContent.classList.add('modal-exit');
+
+    setTimeout(() => {
+        adminHistoryModal.classList.add('hidden');
+        adminHistoryModal.classList.remove('flex');
+    }, 300);
+}
+
 // ===== Card Canvas Drawing =====
 function drawCardCanvas() {
     const W = cardCanvas.width;
@@ -1235,6 +1344,8 @@ Selamat Hari Raya Idul Fitri 1447 H! Mohon Maaf Lahir dan Batin 🌙✨`;
 generateCardBtn.addEventListener('click', openCardModal);
 closeCardModal.addEventListener('click', closeCardModalFn);
 cardModalBackdrop.addEventListener('click', closeCardModalFn);
+closeAdminHistoryModal.addEventListener('click', closeAdminHistoryModalFn);
+adminHistoryBackdrop.addEventListener('click', closeAdminHistoryModalFn);
 downloadCardBtn.addEventListener('click', downloadCard);
 shareCardBtn.addEventListener('click', shareCard);
 
@@ -1273,6 +1384,10 @@ document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
         resetThrOpenLock();
+    }
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        openAdminHistoryModal();
     }
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'u') {
         e.preventDefault();

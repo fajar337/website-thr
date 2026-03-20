@@ -5,7 +5,7 @@ function doGet(e) {
     const action = (e && e.parameter && e.parameter.action) || 'claim';
 
     if (action === 'claim') {
-      return jsonResponse(claimThr_());
+      return jsonResponse(claimThr_(e));
     }
 
     if (action === 'health') {
@@ -14,6 +14,10 @@ function doGet(e) {
 
     if (action === 'stats') {
       return jsonResponse(getStats_());
+    }
+
+    if (action === 'history') {
+      return jsonResponse(getHistory_());
     }
 
     return jsonResponse({ success: false, message: 'Action tidak dikenal' });
@@ -25,7 +29,7 @@ function doGet(e) {
   }
 }
 
-function claimThr_() {
+function claimThr_(e) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
 
   if (!sheet) {
@@ -59,7 +63,8 @@ function claimThr_() {
 
     sheet.getRange(rowIndex, 2).setValue('CLAIMED');
     sheet.getRange(rowIndex, 3).setValue(new Date());
-    sheet.getRange(rowIndex, 4).setValue('Website THR');
+    const source = String((e && e.parameter && e.parameter.source) || 'Website THR').trim();
+    sheet.getRange(rowIndex, 4).setValue(source || 'Website THR');
 
     return {
       success: true,
@@ -72,6 +77,51 @@ function claimThr_() {
     success: true,
     empty: true,
     message: 'THR sudah habis',
+  };
+}
+
+function getHistory_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    throw new Error(`Sheet "${SHEET_NAME}" tidak ditemukan`);
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return {
+      success: true,
+      history: [],
+    };
+  }
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  const history = [];
+
+  for (let i = values.length - 1; i >= 0; i -= 1) {
+    const reward = String(values[i][0] || '').trim();
+    const status = String(values[i][1] || '').trim().toUpperCase();
+    const claimedAt = values[i][2];
+    const source = String(values[i][3] || '').trim();
+
+    if (!reward || status !== 'CLAIMED') {
+      continue;
+    }
+
+    history.push({
+      reward: reward,
+      claimed_at: claimedAt instanceof Date ? claimedAt.toISOString() : String(claimedAt || ''),
+      source: source || 'Website THR',
+    });
+
+    if (history.length >= 20) {
+      break;
+    }
+  }
+
+  return {
+    success: true,
+    history: history,
   };
 }
 
