@@ -83,6 +83,9 @@ const thrMessages = [
     '"Terima THR-nya, simpan senyumnya, dan rayakan Lebaran dengan hati yang paling hangat!"',
 ];
 
+const THR_COUNTER_STORAGE_KEY = 'thrOpenCounter';
+const THR_REMAINING_CACHE_KEY = 'thrRemainingCache';
+const THR_HISTORY_CACHE_KEY = 'thrHistoryCache';
 const CUSTOM_THR_STORAGE_KEY = 'customThrEntries';
 const CUSTOM_THR_INDEX_STORAGE_KEY = 'customThrIndex';
 const THR_OPEN_LOCK_KEY = 'thrOpenedLock';
@@ -122,6 +125,44 @@ function parseCustomThrText(text) {
     }
 
     return entries.filter(Boolean);
+}
+
+function loadThrCounter() {
+    const savedCounter = Number(localStorage.getItem(THR_COUNTER_STORAGE_KEY) || '0');
+    counter = Number.isFinite(savedCounter) && savedCounter >= 0 ? savedCounter : 0;
+    if (thrCounter) {
+        thrCounter.textContent = String(counter);
+    }
+}
+
+function saveThrCounter() {
+    localStorage.setItem(THR_COUNTER_STORAGE_KEY, String(counter));
+}
+
+function loadCachedRemainingCount() {
+    const savedRemaining = Number(localStorage.getItem(THR_REMAINING_CACHE_KEY) || 'NaN');
+    return Number.isFinite(savedRemaining) && savedRemaining >= 0 ? savedRemaining : null;
+}
+
+function saveCachedRemainingCount(value) {
+    if (Number.isFinite(value) && value >= 0) {
+        localStorage.setItem(THR_REMAINING_CACHE_KEY, String(value));
+    }
+}
+
+function loadCachedClaimHistory() {
+    try {
+        const savedHistory = JSON.parse(localStorage.getItem(THR_HISTORY_CACHE_KEY) || '[]');
+        return Array.isArray(savedHistory) ? savedHistory : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveCachedClaimHistory(history) {
+    if (Array.isArray(history)) {
+        localStorage.setItem(THR_HISTORY_CACHE_KEY, JSON.stringify(history.slice(0, 20)));
+    }
 }
 
 function saveCustomThrState() {
@@ -241,7 +282,9 @@ async function fetchRemoteThrStats() {
         throw new Error(payload?.message || 'Stats THR tidak valid');
     }
 
-    return Number(payload.remaining || 0);
+    const remaining = Number(payload.remaining || 0);
+    saveCachedRemainingCount(remaining);
+    return remaining;
 }
 
 async function fetchRemoteClaimHistory() {
@@ -260,7 +303,9 @@ async function fetchRemoteClaimHistory() {
         throw new Error(payload?.message || 'Riwayat claim tidak valid');
     }
 
-    return Array.isArray(payload.history) ? payload.history : [];
+    const history = Array.isArray(payload.history) ? payload.history : [];
+    saveCachedClaimHistory(history);
+    return history;
 }
 
 async function updateRemainingDisplay() {
@@ -271,7 +316,8 @@ async function updateRemainingDisplay() {
             const remaining = await fetchRemoteThrStats();
             thrRemaining.textContent = String(remaining);
         } catch (error) {
-            thrRemaining.textContent = 'Tidak tersedia';
+            const cachedRemaining = loadCachedRemainingCount();
+            thrRemaining.textContent = cachedRemaining === null ? 'Tidak tersedia' : String(cachedRemaining);
         }
         return;
     }
@@ -376,6 +422,7 @@ function getNextThrReward() {
 }
 
 loadCustomThrState();
+loadThrCounter();
 
 // ===== Card Style Themes =====
 const cardThemes = {
@@ -681,6 +728,7 @@ async function openModal() {
 
     counter++;
     thrCounter.textContent = counter;
+    saveThrCounter();
     updateRemainingDisplay();
 
     await animationPromise;
@@ -886,7 +934,17 @@ async function openAdminHistoryModal() {
             adminHistoryList.appendChild(createHistoryItem(entry));
         });
     } catch (error) {
-        adminHistoryStatus.textContent = 'Gagal memuat riwayat claim admin.';
+        const cachedHistory = loadCachedClaimHistory();
+
+        if (cachedHistory.length > 0) {
+            adminHistoryStatus.textContent = `Menampilkan ${cachedHistory.length} riwayat claim terakhir yang tersimpan.`;
+            cachedHistory.forEach((entry) => {
+                adminHistoryList.appendChild(createHistoryItem(entry));
+            });
+            return;
+        }
+
+        adminHistoryStatus.textContent = 'Gagal memuat riwayat claim admin. Redeploy Google Apps Script lalu refresh website.';
     }
 }
 
